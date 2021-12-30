@@ -22,7 +22,9 @@ Locations
 
 ## Compiling Records of All the Attack "Attempts"
 
-## FQ&A
+## FQ&A and General Info
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/CVE-2021-44228_cvss_scoring.png" width="400px"></h1>
+
 Why is Log4j such a big deal?
 1. **Can impact not only the targeted application, but also software it forwards logs to**
 2. **Provides unauthenticated Remote Code Execution**
