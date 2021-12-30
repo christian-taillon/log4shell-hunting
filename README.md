@@ -4,8 +4,21 @@ As the log4j "sawdust" settles, many Organizations may want to take further proa
 
 This resource takes a threat hunting approach not to only replace identification of attempted attacks on the network; a role that is ideally primarily fulfilled by existing security products, but instead takes advantage of the"noisy" nature of the attack to systematically hunt for successful outcomes of the attempted attacks against vulnerable assets across an environment.
 
-#
-Threat Hunting Assumptions
+# The Hunt
+## Device Executing Log4j Attack instructions
+Hunt Methodology: Hypothesis Driven
+Efficacy: High
+Data Domain: NetFlow | Web
+Data Requirements
+1. You have access to various web and app server logs
+2. You have the capability to look at netflow logs from at least December 10th 0500 UTC
+3. Web logs need to contain request headers, input fields, and query/body parameters to be comprehensive
+
+## Operational Intelligence for Hypothesis Driven Hunt:
+How the attack works - string payload is placed in headers, input field,s or query and body parameters. Software running Log4j processes event or a log of the event containing the string and executes as directed by the `jndilookup.class`.
+
+
+Locations
 
 ## Compiling Records of All the Attack "Attempts"
 
@@ -47,3 +60,9 @@ While basic security efforts undertaken in most security shops apply, it should 
 [Frequently Asked Questions About Log4Shell](https://www.tenable.com/blog/cve-2021-44228-cve-2021-45046-cve-2021-4104-frequently-asked-questions-about-log4shell)
 [Picus - 4 Step Immediate Mitigation for
 Log4j Attacks (Log4Shell)](https://media-exp1.licdn.com/dms/document/C4D1FAQHAbdlMIo1zVw/feedshare-document-pdf-analyzed/0/1640074174833?e=1640908800&v=beta&t=wOeCXDhR7G8ZjvLotB1olV5SU-dIsW_cvpNAQBKq3Rw)
+
+## Vulnerability (CVE-2021-44228, log4shell)
+- https://logging.apache.org/log4j/2.x/security.html
+- https://issues.apache.org/jira/browse/LOG4J2-3201
+- https://github.com/apache/logging-log4j2/pull/608
+- https://nvd.nist.gov/vuln/detail/CVE-2021-44228
