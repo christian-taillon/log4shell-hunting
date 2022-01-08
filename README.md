@@ -44,7 +44,7 @@ Here is an example using base64:
 Details can be found for each section bellow.
 
 ### The Hunt: Network Resource
-1. **Scoping out a Query**: Scope all relevant logs using the `${jndi\:` string. Create an output that you can run additional analysis on.
+1. [**Scoping out a Query**](#scoping-out-a-query): Scope all relevant logs using the `${jndi\:` string. Create an output that you can run additional analysis on.
 2. **Scope Reduction**: Filter results to those that contain protocol resolutions; exclude the base64 command events which will be hunted separately.
 2. **Threat Extraction**: Extract indicators to use for successful attack identification. <br>
 regular expression: `:(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[[:alnum:]]|\.){1,})))`
@@ -128,7 +128,7 @@ Examples of searches are provided in Splunk's Splunk Processing Lanagage and Ela
 *Note: The above searches while less efficient than only wildcard'ing the end of the string, but they may be more effective at finding ever instance of the attack.*
 
 
-### The string blacklist bypasses problem
+### The string blacklist bypass problem
 A bypass to popular mitigation is to blocklist some of the affected lookup strings. A simple method around this is to use upper or lower notations.
 
 For example, the following may be logged:
@@ -170,11 +170,11 @@ Run these regular expressions in your search. While Splunk has a built in comman
 At this point I don't have an easy to use tool to run this regular expression on that can output the multiple capture groups well.
 
 Options:
-- CyberChef - Currently, the best option. Can print capture groups; however, data is not structured.
+- **CyberChef** - Currently, the best option. Can print capture groups; however, data is not structured.
 
-<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/cyber-chef.png" width="400px"></h1>
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/cyber-chef.png" width="700px"></h1>
 
-- grep  with `-Po` flag - Can print only matches; however, only prints the first match. Regex would need to be rewritten as seperate expressions for each match.
+- **grep -Po** - Can print only matches; however, only prints the first match. Regex would need to be rewritten as seperate expressions for each match.
 
 `$ cat ./elastic_export.txt | grep -Po1 ':(?:\/){1,2}(?<threat>(?<threat_host>(?:[A-Za-z0-9]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[A-Za-z0-9]|\.){1,})))\/(?<threat_record>[A-Za-z0-9]{1,})}'
 ://90.84.178.188:1389/Exploit}
@@ -182,7 +182,7 @@ Options:
 ://31.131.16.127:1389/Exploit}
 ://31.131.16.127:1389/Exploit}
 `
-- sed uses different flavor of regex and current syntax will not work.
+- **sed -rn** uses different flavor of regex and current syntax will not work.
 
 `sed -rn ':(?:\/){1,2}(?<threat>(?<threat_host>(?:[A-Za-z0-9]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[A-Za-z0-9]|\.){1,})))\/(?<threat_record>[A-Za-z0-9]{1,})}' ./elastic_export.txt
 sed: -e expression #1, char 12: unexpected `}'`
