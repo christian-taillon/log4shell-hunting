@@ -45,23 +45,22 @@ Details can be found for each section bellow.
 
 ### The Hunt: Network Resource
 1. [**Scoping out a Query**](#scoping-out-a-query): Scope all relevant logs using the `${jndi\:` string. Create an output that you can run additional analysis on.
-2. **Scope Reduction**: Filter results to those that contain protocol resolutions; exclude the base64 command events which will be hunted separately.
-2. **Threat Extraction**: Extract indicators to use for successful attack identification. <br>
+2. [**Threat Extraction**](#threat-extraction): Extract indicators to use for successful attack identification. <br>
+3. [**Scope Reduction**:](#scope-reduction-netconnect) Filter results to those that contain protocol resolutions; exclude the base64 command events which will be hunted separately.
 regular expression: `:(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[[:alnum:]]|\.){1,})))`
 4. **Successful Attack Identification**: Run the exported list against a comprehensive record of netflow data during attack timeline.
-4. **Analyze Results**: Review the results and contain, remediate, and escalate where necessary.  
+5. **Analyze Results**: Review the results and contain, remediate, and escalate where necessary.  
 
 ### The Hunt: Base64 Command Execution
-1. **Scoping out a Query**: Scope all relevant logs using the `${jndi\:` string. Create an output that you can run additional analysis on.
-2. **Scope Reduction**: Filter results to those that contain base64 command events.
-2. **Threat Extraction**: Extract indicators to use for successful attack identification. <br>
+1. [**Scoping out a Query**](#scoping-out-a-query) Scope all relevant logs using the `${jndi\:` string. Create an output that you can run additional analysis on.
+2. [**Threat Extraction**](#threat-extraction) Extract indicators to use for successful attack identification. <br>
+3. [**Scope Reduction**:](#scope-reduction-base64) Filter results to those that contain base64 command events.
 regular expression: `\/Base64\/(?<base64_threat>[A-Za-z\d+\/]*(?:==|=|[A-Za-z\d+\/]))[|}]`
-3. **Base64 Decoding**: Using built in tools, or tools like `base64 -d` in linux or CyberChef, decode the base 64 to get the commands that were executed.
-4. **Network Threat Extraction**: Extract the network indicators to run against your netflow data.
-4. **Successful Attack Identification**: Run the exported list against a comprehensive record of netflow data during attack timeline. Additionally, run the execution commands against endpoint data.
-4. **Analyze Results**: Review the results and contain, remediate, and escalate where necessary.  
+4. **Base64 Decoding**: Using built in tools, or tools like `base64 -d` in linux or CyberChef, decode the base 64 to get the commands that were executed.
+5. **Network Threat Extraction**: Extract the network indicators to run against your netflow data.
+6. **Successful Attack Identification**: Run the exported list against a comprehensive record of netflow data during attack timeline. Additionally, run the execution commands against endpoint data.
+7. **Analyze Results**: Review the results and contain, remediate, and escalate where necessary.  
 
-*Note: You may find this regex doesn't work well for your logs. There are more efficient ways to match; however, this regex was written to be able to match against many disparate logs. There were many variations of the regex, but this was sufficient for hunts in several environments and was able to capture all relevant events in those cases. I am open to PRs with additional / alternative regex.*
 
 ### Scoping out a Query
 Scope all relevant logs using the `${jndi\:` string.
@@ -193,7 +192,11 @@ I will research or write a Python script later to accomplish this.
 
 ## To Be Continued -- work in progress
 
-### Scope Reduction
+### Scope Reduction NetConnect
+Extract indicators to use for successful attack identification and run a list of indicators against netflow data and endpoint data.
+
+
+### Scope Reduction Base64
 Extract indicators to use for successful attack identification and run a list of indicators against netflow data and endpoint data.
 
 ### Analyze Results
