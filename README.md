@@ -4,6 +4,10 @@ As the log4j "sawdust" settles, many Organizations may want to take further proa
 
 This resource takes a threat hunting approach to identifying evidence of successful exploitation of this vulnerability. This is not intended to solely replace detection of attacks on the network; a role that is ideally primarily fulfilled by existing security products, but instead takes advantage of the "noisy" nature of the attack to systematically hunt for successful outcomes of the attempted attacks against vulnerable assets across an environment.
 
+General information about the vulnerability is already available from a number of sources that would do a better job than I and presenting. That being said, for those interested, general information and frequently asked questions can be found at the bottom of the page [here](#fq&a-and-general-info)
+
+
+### Why Threat Hunt?
 Security Vendors worked hard to keep up with the evolving threats, but there were [many bypasses](#bypass-examples) to the developed prevention and detection signatures and security vendors had to consistently adapt with [new signatures](#example:-palo-alto) as adversaries discovered new ways to bypass in place detections. This meant that even companies with the most recent signatures were very likely targeted attacks that were not detected.  
 
 Therefore, we will not be relying on Security alerts for our initial scope. These alerts should *not* be ignored and can even been included in the hunt if they contain records of the URL, User-AgentStrings, or other [fields mentioned later](#locations-to-consider-checking) that may contain the attack. However, keep in mind that Threat Hunting is most valuable when it identifies true threats that the SOC has not already triaged. Therefore data from things like NTAs, NG-Firewall HTTP logs or Proxys, or even Web Server logs (which is what we use here for examples) will be more valuable than IPS alerts Log4j attack logs.
@@ -318,7 +322,12 @@ Review the results and contain, remediate, and escalate where necessary.
 Any instances where endpoint data reveals execution of base64 commands or devices reached out to IP addresses on ports as directed by the attacks indicate a successful attack that was launched against your network. These events need to be escalated to an Incident Response process and investigated.
 
 ## FQ&A and General Info
+Allot of this content has already been discussed or shared which is why it is placed at the end of the page.
 
+#### CVE-2021-44228
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/CVE-2021-44228_cvss_scoring.png" width="400px"></h1>
+
+Vulnerabilities Associated with Log4j Weeks of Discovery
 | CVE | Type | Affected Log4j Versions | Non-Default Configuration | Observed in Wild |
 |---|---|---|---|---|
 | CVE-2021-44228 | RCE | 2.0 through 2.14.1 | No | Yes |
@@ -326,10 +335,16 @@ Any instances where endpoint data reveals execution of base64 commands or device
 | CVE-2021-4104 | RCE | 1.2* | Yes | No |
 | CVE-2021-45105 | DoS | 2.0-beta9 to 2.16.0 | Yes | No |
 
-<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/CVE-2021-44228_cvss_scoring.png" width="400px"></h1>
 
 Why is Log4j such a big deal?
-1. **Can impact not only the targeted application, but also software it forwards logs to**
+1. **Can impact not only the targeted application, but also log forwarding destinations** <br>
+In my opinion one of the most unique and challenging aspects to this vulnerably is that it can affect any system that handles logs. Most organizations have tools to pull logs from servers to aggregate and centrally analyze. Not only could an external facing service be compromised but severs "deep" inside the network can be compromise if they process strings from the attacking service.<br>
+Consider: <br>
+  a. Where are you forwarding your web/app logs to and are those handling applications affected?<br>
+  b. If forms are submitted does that data go and is that vulnerable? <br>
+  c. Where can analysts pull and review logs and are those tools vulnerable? <br>
+  d. Can someone send email to an account that automatically processes data (like a support service solution with a ticketing feature) and are these services vulnerable? <br>
+  e. Do any sensors that proxy traffic or monitor it out of band have log4j vulnerabilities? Do the systems they forward traffic to? <br>
 2. **Provides unauthenticated Remote Code Execution**
 This element alone is enough to warrant attention from security practitioners. RCE allows adversaries to instruct victim devices to execute arbitrary code.
 3. **Identifying and remediating instances of the vulnerability**
@@ -341,10 +356,9 @@ This vulnerability doe not require Java Runtime Environment to be installed at a
 
 *Note: Multiple efforts to compile lists of affected software have been undertake to respond to this uniquely difficult to identify threat. Two such lists are: [CISA Log4j (CVE-2021-44228) Affected Vendor & Software List](https://github.com/cisagov/log4j-affected-db/blob/develop/SOFTWARE-LIST.md) and [Nationaal Cyber Security Centrum Software List](https://github.com/NCSC-NL/log4shell/blob/main/software/software_list.md)*
 
-# Traditional Detection
+## Traditional Detection
 As noted, security controls, particularly Intrusion Detection/Prevention Systems, Dedicated WAFs / Next-Gen or L7 Firewalls or other NTAs are particularly usefor for the detection of these attacks in a network.
 
-## A few items to note:
 #### Inbound Encrypted Sessions
 While basic security efforts undertaken in most security shops apply, it should be noted that security controls which analyze network traffic to identify log4j attacks will likely not be sufficient to detect attacks in encrypted sessions.  
 
@@ -353,6 +367,11 @@ While basic security efforts undertaken in most security shops apply, it should 
 1. **Decryption** - there are various methods to decrypt inbound traffic, all require some configuration. Optimally, this can be configured at an edge L7 firewall with signatures to detect and prevent attacks against cve-2021-44228.
 2. **Behind SSL Termination** - this option is applicable for organizations who may use Load Balancers to direct client requests across multiple servers or who decrypt traffic at a network device like a L7 firewall before traffic is proceeds south of the firewall.
 
+#### Cloud WAFs
+Cloud WAFs only work when clients attempt to resolve the DNS record for the service and communicate to the IP address offered in the response. They do not prevent an adversary from throwing traffic against your IP addresses. When possible, you should consider only allowing traffic to communicate to your web services that you have proxied through a Cloud WAF when it is sourced form the WAF IP.
+
+#### 404 Does Not Mean Safe
+This attack does not target a vulnerability native to the web service. It instead attempts to perform the command injection at the logging stage. Just because the web service did not respond with a wab page and allow interaction to continue does not mean the attacker did not pass the string in the User-AgentString or in some other header that may be logged by your service.
 
 ## Additional Resources
 [MUSA ŞANA](https://musana.net/2021/12/13/log4shell-Quick-Guide/)
