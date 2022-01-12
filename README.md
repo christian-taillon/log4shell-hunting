@@ -198,14 +198,24 @@ To do ths, we will use the regular expression provided in the hunt outline.
 #### Network Extraction:
 `:(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[[:alnum:]]|\.){1,})))`
 
+In Splunk this would look like: ` ... search | rex field=foo ":(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})\/(?<threat_content>(?:[[:alnum:]]|\.){1,})))"
+| fields - foo _time`
+
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/splunk_net_extract.png" width="700px"></h1>
+
 #### Base64
 `\/Base64\/(?<base64_threat>[A-Za-z\d+\/]*(?:==|=|[A-Za-z\d+\/]))[|}]`
+
+In Splunk this would look like: ` ... search | rex field=foo ":(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})\/(?<threat_content>(?:[[:alnum:]]|\.){1,})))"
+| fields - foo _time`
+
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/splunk_base64_extract.png" width="700px"></h1>
 
 Run these regular expressions in your search. While Splunk has a built in command to run regular expression on search results I don't know of an easy way to do this in Kibana. I would just pull the data from the Elastic API and then use another Regular expression tool.
 
 At this point I don't have an easy to use tool to run this regular expression on that can output the multiple capture groups well.
 
-Options:
+Alternative Options:
 - **CyberChef** - Currently, the best option. Can print capture groups; however, data is not structured.
 
 <h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/cyber-chef.png" width="700px"></h1>
@@ -226,15 +236,17 @@ sed: -e expression #1, char 12: unexpected `}'`
 I will research or write a Python script later to accomplish this.
 
 ### Base64 Decoding
-With paid solutions you may be able to do this in a SIEM. Alternatively you can do it in the command line with `base64`. You can also use `iocextract` to get your network indicators into a workable format if you are not working out of a SIEM such as Splunk.
+With many data analytic solutions, you may be able to keep this next step in your  SIEM. Alternatively, you can do it in the command line with `base64`. You can also use `iocextract` to get your network indicators into a workable format if you are not working out of a SIEM such as Splunk.
+
+To make this easier and clean up the output I have provided a [very simple script](https://github.com/christian-taillon/log4shell-hunting/blob/main/scripts/decode_base64_and_extract_ioc.sh) that takes a few extra steps to find and sort unique values.
 
 Notice in the following example there are several types of output. Simple IPs exist which will be used in the next step. But there are also some URLs which provide additional information as well as another base64 that will need to be decoded again and handled separately. Someone was trying to be evasive.
 
 <h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/terminal_base64.png" width="700px"></h1>
 
-To make this easier and clean up the output I have provided a very simple script that takes a few extra steps to find and sort unique values.
 
 ### Successful Attack Identification NetConnect
+
 
 ### Successful Attack Identification Base64
 
