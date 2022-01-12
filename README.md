@@ -6,9 +6,15 @@ This resource takes a threat hunting approach to identifying evidence of success
 
 Security Vendors worked hard to keep up with the evolving threats, but there were [many bypasses](#bypass-examples) to the developed prevention and detection signatures and security vendors had to consistently adapt with [new signatures](#example:-palo-alto) as adversaries discovered new ways to bypass in place detections. This meant that even companies with the most recent signatures were very likely targeted attacks that were not detected.  
 
-Therefore, we are intentionally not using Security alerts for our initial scope. These alerts should *not* be ignored and can even been included in the hunt if they contain records of the URL, User-AgentStrings, or other [fields mentioned later](#locations-to-consider-checking) that may contain the attack. However, keep in mind that Threat Hunting is most valuable when it identifies true threats that the SOC has not already triaged. Therefore data from things like NTAs, NG-Firewall HTTP logs or Proxys, or even Web Server logs (which is what we use here for examples) will be more valuable than IPS alerts Log4j attack logs.
+Therefore, we will not be relying on Security alerts for our initial scope. These alerts should *not* be ignored and can even been included in the hunt if they contain records of the URL, User-AgentStrings, or other [fields mentioned later](#locations-to-consider-checking) that may contain the attack. However, keep in mind that Threat Hunting is most valuable when it identifies true threats that the SOC has not already triaged. Therefore data from things like NTAs, NG-Firewall HTTP logs or Proxys, or even Web Server logs (which is what we use here for examples) will be more valuable than IPS alerts Log4j attack logs.
 
-Also, consider that SOC primarily triages alerts from security controls. Their deliverable is a determination on whether a notable event that has been surfaced requires additional escalation or not. A Threat Hunter delivers a compromise assessment:
+Our examples will use web server logs for examples assuming a scenario where the Threat Hunter doesn't have any IPS logs to leverage.
+
+
+### The Hunter Mindset
+Consider that SOC primarily triages alerts from security controls. Their deliverable is a determination on whether a notable event that has been surfaced requires additional escalation or not.
+
+A Threat Hunter's deliverable is a compromise assessment:
 
 1. I am reasonably certain the system/environment is safe​
 2. I am reasonably certain the system/environment is compromised​
