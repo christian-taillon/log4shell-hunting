@@ -186,7 +186,7 @@ Therefore our searches must account for these bypass method. We will not only ha
 
 **Note:** This regex is not sufficient to catch all forms of bypasses. You can see here  list of bypass examples that this pattern does not match against.
 
-<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/regex-bypass.png" width="700px"></h1>
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/regex-bypass.png" width="700px"></h1>
 
 I highly recommend reviewing [Florian Roth's yara rules on GitHub](https://github.com/Neo23x0/signature-base/blob/a383746512f1ef70999b541396bd5499a9134601/yara/expl_log4j_cve_2021_44228.yar) to preview of the strings you may want to match against, as well as some false positives to avoid.
 
@@ -208,7 +208,7 @@ At this point I don't have an easy to use tool to run this regular expression on
 Options:
 - **CyberChef** - Currently, the best option. Can print capture groups; however, data is not structured.
 
-<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/cyber-chef.png" width="700px"></h1>
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/cyber-chef.png" width="700px"></h1>
 
 - **grep -Po** - Can print only matches; however, only prints the first match. Regex would need to be rewritten as seperate expressions for each match.
 
@@ -230,7 +230,7 @@ With paid solutions you may be able to do this in a SIEM. Alternatively you can 
 
 Notice in the following example there are several types of output. Simple IPs exist which will be used in the next step. But there are also some URLs which provide additional information as well as another base64 that will need to be decoded again and handled separately. Someone was trying to be evasive.
 
-<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/terminal_base64.png" width="700px"></h1>
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/terminal_base64.png" width="700px"></h1>
 
 To make this easier and clean up the output I have provided a very simple script that takes a few extra steps to find and sort unique values.
 
@@ -250,7 +250,7 @@ Review the results and contain, remediate, and escalate where necessary.
 | CVE-2021-4104 | RCE | 1.2* | Yes | No |
 | CVE-2021-45105 | DoS | 2.0-beta9 to 2.16.0 | Yes | No |
 
-<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/CVE-2021-44228_cvss_scoring.png" width="400px"></h1>
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/CVE-2021-44228_cvss_scoring.png" width="400px"></h1>
 
 Why is Log4j such a big deal?
 1. **Can impact not only the targeted application, but also software it forwards logs to**
